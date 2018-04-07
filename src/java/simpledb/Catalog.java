@@ -22,9 +22,24 @@ public class Catalog {
      * Constructor.
      * Creates a new, empty catalog.
      */
+
+    private ArrayList<Integer> tableIdList;
+    private ArrayList<String> tableNameList;
+    private ArrayList<String> pkeyFieldList;
+    private ArrayList<DbFile> dbFileList;
+
+    /**
+     * Constructor.
+     * Creates a new, empty catalog.
+     */
     public Catalog() {
         // some code goes here
+        tableIdList = new ArrayList<Integer>(0);
+        tableNameList = new ArrayList<String>(0);
+        pkeyFieldList = new ArrayList<String>(0);
+        dbFileList = new ArrayList<DbFile>(0);
     }
+
 
     /**
      * Add a new table to the catalog.
@@ -37,6 +52,20 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        Integer tableId = file.getId();
+        Integer index = tableIdList.lastIndexOf(tableId);
+        if (index == -1) {
+            index = tableIdList.size();
+            tableIdList.add(index, tableId);
+            tableNameList.add(index, name);
+            pkeyFieldList.add(index, pkeyField);
+            dbFileList.add(index, file);
+        } else {
+            tableIdList.set(index, tableId);
+            tableNameList.set(index, name);
+            pkeyFieldList.set(index, pkeyField);
+            dbFileList.set(index, file);
+        }
     }
 
     public void addTable(DbFile file, String name) {
@@ -60,7 +89,9 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        int index = tableNameList.lastIndexOf(name);
+        if (index == -1) throw new NoSuchElementException("The table does not exist.");
+        return (int)tableIdList.get(index);
     }
 
     /**
@@ -71,7 +102,9 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        int index = tableIdList.lastIndexOf((Integer)tableid);
+        if (index == -1) throw new NoSuchElementException("The table does not exist.");
+        return dbFileList.get(index).getTupleDesc();
     }
 
     /**
@@ -82,29 +115,39 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        int index = tableIdList.lastIndexOf((Integer)tableid);
+        if (index == -1) throw new NoSuchElementException("The table does not exist.");
+        return dbFileList.get(index);
     }
 
-    public String getPrimaryKey(int tableid) {
+    public String getPrimaryKey(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        int index = tableIdList.lastIndexOf((Integer)tableid);
+        if (index == -1) throw new NoSuchElementException("The table does not exist.");
+        return pkeyFieldList.get(index);
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return tableIdList.iterator();
     }
 
-    public String getTableName(int id) {
+    public String getTableName(int id) throws NoSuchElementException {
         // some code goes here
-        return null;
+        int index = tableIdList.lastIndexOf((Integer)id);
+        if (index == -1) throw new NoSuchElementException("The table does not exist.");
+        return tableNameList.get(index);
     }
-    
+
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        tableIdList.clear();
+        tableNameList.clear();
+        pkeyFieldList.clear();
+        dbFileList.clear();
     }
-    
+
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
      * @param catalogFile
@@ -114,7 +157,7 @@ public class Catalog {
         String baseFolder=new File(new File(catalogFile).getAbsolutePath()).getParent();
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(catalogFile)));
-            
+
             while ((line = br.readLine()) != null) {
                 //assume line is of the format name (field type, field type, ...)
                 String name = line.substring(0, line.indexOf("(")).trim();
