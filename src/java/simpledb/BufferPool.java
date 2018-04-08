@@ -87,7 +87,6 @@ public class BufferPool {
                 throw new DbException("BufferPool: BufferPool is full");
             }
         }
-        //return null;
     }
 
     /**
