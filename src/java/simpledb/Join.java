@@ -8,6 +8,9 @@ import java.util.*;
 public class Join extends Operator {
 
     private static final long serialVersionUID = 1L;
+    private JoinPredicate p;
+    private OpIterator child1, child2;
+    private Tuple current;
 
     /**
      * Constructor. Accepts two children to join and the predicate to join them
@@ -22,11 +25,15 @@ public class Join extends Operator {
      */
     public Join(JoinPredicate p, OpIterator child1, OpIterator child2) {
         // some code goes here
+        this.child1 = child1;
+        this.child2 = child2;
+        this.p = p;
+        current = null;
     }
 
     public JoinPredicate getJoinPredicate() {
         // some code goes here
-        return null;
+        return p;
     }
 
     /**
@@ -36,7 +43,7 @@ public class Join extends Operator {
      * */
     public String getJoinField1Name() {
         // some code goes here
-        return null;
+        return child1.getTupleDesc().getFieldName(p.getField1());
     }
 
     /**
@@ -46,7 +53,7 @@ public class Join extends Operator {
      * */
     public String getJoinField2Name() {
         // some code goes here
-        return null;
+        return child2.getTupleDesc().getFieldName(p.getField2());
     }
 
     /**
@@ -55,20 +62,32 @@ public class Join extends Operator {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // some code goes here
+        if (child1 == null || child2 == null) {
+            throw new NoSuchElementException();
+        }
+        super.open();
+        child2.open();
+        child1.open();
+        current = null;
     }
 
     public void close() {
         // some code goes here
+        child1.close();
+        child2.close();
+        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
+        child2.rewind();
+        child1.rewind();
     }
 
     /**
@@ -85,24 +104,56 @@ public class Join extends Operator {
      * <p>
      * For example, if one tuple is {1,2,3} and the other tuple is {1,5,6},
      * joined on equality of the first column, then this returns {1,2,3,1,5,6}.
-     * 
+     *
      * @return The next matching tuple.
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        if (child1 == null || child2 == null) return null;
+        if (current == null) {
+            if (child1.hasNext()) current = child1.next();
+            else return null;
+        }
+        while (true) {
+            while (child2.hasNext()) {
+                Tuple t2 = child2.next();
+                if (p.filter(current, t2)) {
+                    Tuple ans = new Tuple(getTupleDesc());
+                    int pos = 0;
+                    Iterator<Field> fIter = current.fields();
+                    while (fIter.hasNext()) {
+                        ans.setField(pos, fIter.next());
+                        pos ++;
+                    }
+                    fIter = t2.fields();
+                    while (fIter.hasNext()) {
+                        ans.setField(pos, fIter.next());
+                        pos ++;
+                    }
+                    return ans;
+                }
+            }
+            if (child1.hasNext()) current = child1.next();
+            else return null;
+            child2.rewind();
+        }
     }
 
     @Override
     public OpIterator[] getChildren() {
-        // some code goes here
-        return null;
+        OpIterator[] children = new OpIterator[2];
+        children[0] = child1;
+        children[1] = child2;
+        return children;
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
+        child1 = children[0];
+        child2 = children[1];
+        current = null;
     }
 
 }

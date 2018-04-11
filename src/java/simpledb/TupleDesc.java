@@ -139,13 +139,10 @@ public class TupleDesc implements Serializable {
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
         // some code goes here
-        for (int i = 0; i < tDItemList.size(); i++) {
-            if (tDItemList.get(i).fieldName.equals(name))
-            {
-                return i;
-            }
-        }
-        throw new NoSuchElementException();
+        if (name == null) throw new NoSuchElementException("Null search.");
+        for (int i = 0; i < tDItemList.size(); i ++)
+            if (tDItemList.get(i).fieldName.equals(name)) return i;
+        throw new NoSuchElementException("No field with a matching name is found.");
     }
 
     /**
@@ -176,19 +173,18 @@ public class TupleDesc implements Serializable {
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
         // some code goes here
-        ArrayList<Type> types = new ArrayList<>(td1.getSize() + td2.getSize());
-        ArrayList<String> strings = new ArrayList<>(td1.getSize() + td2.getSize());
-        Type t[] = new Type[types.size()];
-        String s[] = new String[strings.size()];
-        for (int i = 0; i < td1.getSize(); i++) {
-            types.add(td1.getFieldType(i));
-            strings.add(td1.getFieldName(i));
+        int numFields = td1.numFields() + td2.numFields();
+        Type[] typeAr = new Type[numFields];
+        String[] fieldAr = new String[numFields];
+        for (int i = 0; i < td1.numFields(); i ++) {
+            typeAr[i] = td1.getFieldType(i);
+            fieldAr[i] = td1.getFieldName(i);
         }
-        for (int i = 0; i < td2.getSize(); i++) {
-            types.add(td1.getFieldType(i));
-            strings.add(td1.getFieldName(i));
+        for (int i = 0; i < td2.numFields(); i ++) {
+            typeAr[i + td1.numFields()] = td2.getFieldType(i);
+            fieldAr[i + td1.numFields()] = td2.getFieldName(i);
         }
-        return new TupleDesc(types.toArray(t), strings.toArray(s));
+        return new TupleDesc(typeAr, fieldAr);
     }
 
     /**
